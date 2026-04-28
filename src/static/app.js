@@ -3,15 +3,18 @@ document.addEventListener("DOMContentLoaded", () => {
   const activitySelect = document.getElementById("activity");
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
+  let currentActivities = {};
 
   // Function to fetch activities from API
   async function fetchActivities() {
     try {
       const response = await fetch("/activities");
       const activities = await response.json();
+      currentActivities = activities;
 
-      // Clear loading message
+      // Clear loading message and dropdown options
       activitiesList.innerHTML = "";
+      activitySelect.innerHTML = '<option value="">-- Select an activity --</option>';
 
       // Populate activities list
       Object.entries(activities).forEach(([name, details]) => {
@@ -52,7 +55,11 @@ document.addEventListener("DOMContentLoaded", () => {
         // Add option to select dropdown
         const option = document.createElement("option");
         option.value = name;
-        option.textContent = name;
+        option.textContent = spotsLeft > 0 ? name : `${name} (Full)`;
+        if (spotsLeft <= 0) {
+          option.disabled = true;
+          option.className = "full-option";
+        }
         activitySelect.appendChild(option);
       });
 
@@ -116,6 +123,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const email = document.getElementById("email").value;
     const activity = document.getElementById("activity").value;
+
+    if (!activity) {
+      messageDiv.textContent = "Please select an activity.";
+      messageDiv.className = "error";
+      messageDiv.classList.remove("hidden");
+      return;
+    }
+
+    const selectedActivity = currentActivities[activity];
+    if (selectedActivity && selectedActivity.participants.length >= selectedActivity.max_participants) {
+      messageDiv.textContent = "This activity is full. Please choose another activity.";
+      messageDiv.className = "error";
+      messageDiv.classList.remove("hidden");
+      return;
+    }
 
     try {
       const response = await fetch(
